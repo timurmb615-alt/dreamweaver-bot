@@ -5,7 +5,7 @@ import os
 
 app = FastAPI()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 class DreamRequest(BaseModel):
     user_dream: str
@@ -14,26 +14,31 @@ class DreamRequest(BaseModel):
 async def generate_dream(req: DreamRequest):
     prompt = (
         "Создай короткий сон (примерно 200 слов) на основе описания пользователя: "
-        f"\"{req.user_dream}\". Стиль: спокойный, кинематографичный, с хэппи-эндом."
+        f"\"{req.user_dream}\". Стиль: спокойный, кинематографичный, позитивный, с хэппи-эндом. "
+        "Пиши по-русски, без лишних пояснений, только сам сон."
     )
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
-            "https://api.openai.com/v1/chat/completions",
+            "https://openrouter.ai/api/v1/chat/completions",
             headers={
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
+                # Рекомендуется указывать origin
+                "HTTP-Referer": "https://dreamweaver-bot",  # можно свой домен/название
+                "X-Title": "DreamWeaverBot",
             },
             json={
-                "model": "gpt-4o-mini",
+                "model": "gpt-4o-mini",  # можно поменять на любую модель OpenRouter
                 "messages": [
                     {"role": "system", "content": "Ты пишешь красивые, но краткие сны."},
                     {"role": "user", "content": prompt},
                 ],
-                "max_tokens": 400,
+                "max_tokens": 600,
             },
         )
+
     resp.raise_for_status()
     data = resp.json()
-    text = data["choices[0]"]["message"]["content"] if "choices[0]" in data else data["choices"][0]["message"]["content"]
-    return {"dream_text": text.strip()}
+    text = data["choices"][0]["message"]["content"].strip()
+    return {"dream_text": text}
