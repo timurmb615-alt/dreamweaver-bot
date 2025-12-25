@@ -1,0 +1,39 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
+import httpx
+import os
+
+app = FastAPI()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+class DreamRequest(BaseModel):
+    user_dream: str
+
+@app.post("/generate_dream")
+async def generate_dream(req: DreamRequest):
+    prompt = (
+        "Создай короткий сон (примерно 200 слов) на основе описания пользователя: "
+        f"\"{req.user_dream}\". Стиль: спокойный, кинематографичный, с хэппи-эндом."
+    )
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "Ты пишешь красивые, но краткие сны."},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 400,
+            },
+        )
+    resp.raise_for_status()
+    data = resp.json()
+    text = data["choices[0]"]["message"]["content"] if "choices[0]" in data else data["choices"][0]["message"]["content"]
+    return {"dream_text": text.strip()}
