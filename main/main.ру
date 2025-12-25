@@ -5,6 +5,8 @@ import os
 
 app = FastAPI()
 
+print("DEBUG: LOADED MAIN.PY, APP =", type(FastAPI))
+
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 class DreamRequest(BaseModel):
